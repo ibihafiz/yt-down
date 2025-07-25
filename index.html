@@ -1,51 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>YouTube Downloader</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { font-family: Arial; padding: 40px; max-width: 600px; margin: auto; }
-    input, select, button { padding: 10px; margin-top: 10px; width: 100%; }
-    #progress { width: 100%; background: #eee; margin-top: 20px; height: 20px; border-radius: 5px; overflow: hidden; }
-    #bar { width: 0; height: 100%; background: green; }
+    body {
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .container {
+      margin-top: 80px;
+      max-width: 700px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .form-control, .form-check-input, .btn {
+      border-radius: 10px;
+    }
+    .progress {
+      height: 25px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .download-section {
+      display: none;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>YouTube Downloader</h1>
-  <input id="url" placeholder="Paste video or playlist link here" />
-  <select id="format">
-    <option value="mp4">MP4 (4K 30fps)</option>
-    <option value="mp3">MP3</option>
-  </select>
-  <button onclick="startDownload()">GO</button>
 
-  <div id="progress" style="display:none;"><div id="bar"></div></div>
-  <a id="download" style="display:none;" href="#" download>Download File</a>
+<div class="container text-white">
+  <h2 class="text-center mb-4">YouTube Video & Playlist Downloader</h2>
 
-  <script>
-    async function startDownload() {
-      const url = document.getElementById("url").value;
-      const format = document.getElementById("format").value;
+  <form id="download-form">
+    <div class="mb-3">
+      <label for="url" class="form-label">Paste YouTube Link</label>
+      <input type="text" class="form-control" id="url" placeholder="https://youtube.com/..." required>
+    </div>
 
-      document.getElementById("progress").style.display = "block";
-      document.getElementById("bar").style.width = "0%";
+    <div class="mb-3">
+      <label class="form-label">Output Format</label><br>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="format" id="mp4" value="video" checked>
+        <label class="form-check-label" for="mp4">MP4 (Video)</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="format" id="mp3" value="audio">
+        <label class="form-check-label" for="mp3">MP3 (Audio)</label>
+      </div>
+    </div>
 
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(r => setTimeout(r, 100));
-        document.getElementById("bar").style.width = i + "%";
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="enableTrim">
+      <label class="form-check-label" for="enableTrim">
+        Trim File (MP4/MP3)
+      </label>
+    </div>
+
+    <div class="row mb-3" id="trimInputs" style="display:none;">
+      <div class="col">
+        <input type="text" class="form-control" id="startTime" placeholder="Start Time (e.g. 00:00)">
+      </div>
+      <div class="col">
+        <input type="text" class="form-control" id="endTime" placeholder="End Time (e.g. 02:30)">
+      </div>
+    </div>
+
+    <div class="d-grid">
+      <button type="submit" class="btn btn-success btn-lg">GO</button>
+    </div>
+  </form>
+
+  <div class="progress mt-4" id="progressBar" style="display:none;">
+    <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
+         role="progressbar" style="width: 0%" id="progressPercent">0%</div>
+  </div>
+
+  <div class="download-section text-center mt-4" id="downloadSection">
+    <a href="#" id="downloadLink" class="btn btn-primary btn-lg" download>Download File</a>
+    <p class="mt-2 small text-muted">If it's a playlist, multiple downloads will begin one by one.</p>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('download-form');
+  const progressBar = document.getElementById('progressBar');
+  const progressPercent = document.getElementById('progressPercent');
+  const downloadSection = document.getElementById('downloadSection');
+  const downloadLink = document.getElementById('downloadLink');
+  const enableTrim = document.getElementById('enableTrim');
+  const trimInputs = document.getElementById('trimInputs');
+
+  enableTrim.addEventListener('change', function () {
+    trimInputs.style.display = this.checked ? 'flex' : 'none';
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    // Simulate progress
+    progressBar.style.display = 'block';
+    let percent = 0;
+    const interval = setInterval(() => {
+      percent += 10;
+      progressPercent.style.width = percent + '%';
+      progressPercent.innerText = percent + '%';
+
+      if (percent >= 100) {
+        clearInterval(interval);
+        downloadSection.style.display = 'block';
+        downloadLink.href = '#'; // dynamically update to server path
       }
+    }, 300);
+  });
+</script>
 
-      const res = await fetch("/api/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, format })
-      });
-
-      const data = await res.json();
-      alert(data.message);
-      document.getElementById("download").style.display = "block";
-      document.getElementById("download").href = "#"; // Put real download URL here later
-    }
-  </script>
 </body>
 </html>
