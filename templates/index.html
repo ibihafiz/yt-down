@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Downloader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 400px;
+      text-align: center;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+    }
+    button {
+      padding: 12px 25px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .progress {
+      margin-top: 20px;
+      background: #eee;
+      height: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background-color: #28a745;
+      transition: width 0.3s ease-in-out;
+    }
+    #download-link {
+      margin-top: 15px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>YouTube Downloader</h2>
+    <input type="text" id="link" placeholder="Paste YouTube link here" />
+    <select id="format">
+      <option value="mp4">MP4 (Video)</option>
+      <option value="mp3">MP3 (Audio)</option>
+    </select>
+    <button onclick="startDownload()">GO</button>
+
+    <div class="progress" id="progress">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <div id="download-link">
+      <a id="downloadBtn" href="#" download>Download Now</a>
+    </div>
+  </div>
+
+  <script>
+    async function startDownload() {
+      const link = document.getElementById("link").value.trim();
+      const format = document.getElementById("format").value;
+
+      if (!link) {
+        alert("Please enter a valid YouTube link.");
+        return;
+      }
+
+      document.getElementById("progress").style.display = "block";
+      document.getElementById("progress-bar").style.width = "10%";
+      document.getElementById("download-link").style.display = "none";
+
+      const res = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ link, format })
+      });
+
+      const result = await res.json();
+      if (!result.file_id) {
+        alert("Error: " + result.error);
+        return;
+      }
+
+      const fileId = result.file_id;
+      let progress = 10;
+
+      const interval = setInterval(async () => {
+        const statusRes = await fetch(`/api/status/${fileId}`);
+        const statusData = await statusRes.json();
+
+        if (statusData.status === "completed") {
+          clearInterval(interval);
+          document.getElementById("progress-bar").style.width = "100%";
+          document.getElementById("downloadBtn").href = statusData.download_url;
+          document.getElementById("download-link").style.display = "block";
+        } else {
+          progress = Math.min(progress + 10, 95);
+          document.getElementById("progress-bar").style.width = progress + "%";
+        }
+      }, 1500);
+    }
+  </script>
+</body>
+</html>
