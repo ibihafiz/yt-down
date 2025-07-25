@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "builds": [
     {
       "src": "index.py",
@@ -7,7 +6,6 @@
     }
   ],
   "routes": [
-    { "src": "/download/(.*)", "dest": "index.py" },
-    { "src": "/(.*)", "dest": "index.py" }
+    { "src": "/(.*)", "dest": "/index.py" }
   ]
 }
