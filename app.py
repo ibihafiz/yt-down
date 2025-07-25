@@ -1,11 +1,11 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, render_template
 import os
 import yt_dlp
 from threading import Thread
 from uuid import uuid4
 
 app = Flask(__name__)
-handler = app  # for Render
+handler = app  # for vercel-style fallback
 
 DOWNLOAD_FOLDER = "downloads"
 if not os.path.exists(DOWNLOAD_FOLDER):
@@ -31,6 +31,10 @@ def download_video(link, format_type, file_id):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([link])
+
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 @app.route("/api/download", methods=["POST"])
 def download():
