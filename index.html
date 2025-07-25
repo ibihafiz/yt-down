@@ -1,189 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>YouTube Downloader</title>
+  <meta charset="UTF-8">
+  <title>Video Downloader</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
     }
-
-    .container {
-      max-width: 600px;
-      margin: 50px auto;
-      background: #fff;
-      padding: 30px 25px;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-    }
-
     h1 {
-      text-align: center;
       color: #333;
-      margin-bottom: 30px;
     }
-
-    input[type="text"],
-    select {
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 400px;
+    }
+    input, select, button {
       width: 100%;
-      padding: 12px 15px;
-      margin: 10px 0 20px;
+      padding: 10px;
+      margin-top: 15px;
+      border-radius: 5px;
       border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
     }
-
-    button {
+    progress {
       width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    #progressBar {
-      background-color: #e0e0e0;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-top: 20px;
-    }
-
-    #progress {
       height: 20px;
-      width: 0%;
-      background-color: #28a745;
-      text-align: center;
-      color: white;
-      font-size: 13px;
-      line-height: 20px;
-      transition: width 0.4s ease;
-    }
-
-    #download-btn {
-      display: none;
-      text-align: center;
       margin-top: 20px;
     }
-
-    #download-btn a {
-      display: inline-block;
-      padding: 10px 20px;
-      background-color: #17a2b8;
-      color: white;
-      text-decoration: none;
-      border-radius: 8px;
-      transition: background 0.3s;
-    }
-
-    #download-btn a:hover {
-      background-color: #138496;
-    }
-
-    footer {
-      text-align: center;
-      margin-top: 50px;
-      color: #888;
-      font-size: 14px;
+    #downloadBtn {
+      display: none;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>YouTube Downloader</h1>
-    
-    <input type="text" id="url" placeholder="Enter YouTube video or playlist URL" />
-    
-    <select id="format">
-      <option value="mp4">MP4 (Video)</option>
-      <option value="mp3">MP3 (Audio Only)</option>
-    </select>
-    
-    <button onclick="startDownload()">Start Download</button>
 
-    <div id="progressBar">
-      <div id="progress">0%</div>
-    </div>
+<h1>Video Downloader</h1>
 
-    <div id="download-btn">
-      <a id="download-link" href="#" download>⬇️ Download File</a>
-    </div>
-  </div>
+<div class="container">
+  <input type="text" id="urlInput" placeholder="Paste video or playlist link here">
+  <select id="formatSelect">
+    <option value="mp4">MP4 (Video)</option>
+    <option value="mp3">MP3 (Audio)</option>
+  </select>
+  <button onclick="startDownload()">GO</button>
 
-  <footer>© 2025 YouTube Downloader by ADIBI</footer>
+  <progress id="progressBar" value="0" max="100"></progress>
 
-  <script>
-    let taskId = null;
-    let interval = null;
+  <a id="downloadBtn" href="#" download>Download File</a>
+</div>
 
-    function startDownload() {
-      const url = document.getElementById("url").value.trim();
-      const format = document.getElementById("format").value;
+<script>
+  function startDownload() {
+    const url = document.getElementById("urlInput").value;
+    const format = document.getElementById("formatSelect").value;
 
-      if (!url) {
-        alert("Please enter a valid YouTube URL.");
-        return;
+    if (!url) {
+      alert("Please enter a URL.");
+      return;
+    }
+
+    const progressBar = document.getElementById("progressBar");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    progressBar.value = 0;
+    downloadBtn.style.display = "none";
+
+    const progressInterval = setInterval(() => {
+      if (progressBar.value < 90) {
+        progressBar.value += 1;
       }
+    }, 100);
 
-      document.getElementById("progress").style.width = "0%";
-      document.getElementById("progress").innerText = "0%";
-      document.getElementById("download-btn").style.display = "none";
+    fetch("/api/download", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ url: url, convert_to: format })
+    })
+    .then(response => {
+      if (!response.ok) throw new Error("Download failed");
+      return response.blob();
+    })
+    .then(blob => {
+      clearInterval(progressInterval);
+      progressBar.value = 100;
 
-      fetch("/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, format })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.task_id) {
-          taskId = data.task_id;
-          interval = setInterval(checkProgress, 1500);
-        } else {
-          alert("Download failed to start.");
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Error contacting server.");
-      });
-    }
+      const link = URL.createObjectURL(blob);
+      downloadBtn.href = link;
+      downloadBtn.download = `video.${format}`;
+      downloadBtn.style.display = "block";
+    })
+    .catch(err => {
+      clearInterval(progressInterval);
+      progressBar.value = 0;
+      alert("Error: " + err.message);
+    });
+  }
+</script>
 
-    function checkProgress() {
-      fetch(`/progress/${taskId}`)
-        .then(res => res.json())
-        .then(data => {
-          const percent = Math.floor(data.progress || 0);
-          document.getElementById("progress").style.width = percent + "%";
-          document.getElementById("progress").innerText = percent + "%";
-
-          if (data.status === "done") {
-            clearInterval(interval);
-            document.getElementById("download-link").href = `/file/${taskId}`;
-            document.getElementById("download-btn").style.display = "block";
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          clearInterval(interval);
-          alert("Error fetching progress.");
-        });
-    }
-  </script>
 </body>
 </html>
