@@ -2,128 +2,135 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>YouTube Downloader</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f7fa;
+      background-color: #f4f6f8;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      height: 100vh;
+      padding: 40px;
     }
+
     .container {
-      background: #fff;
+      background: white;
       padding: 30px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 400px;
-      text-align: center;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 600px;
     }
-    input[type="text"] {
+
+    input, select, button {
       width: 100%;
       padding: 12px;
-      margin-bottom: 12px;
+      margin: 10px 0;
+      border-radius: 6px;
       border: 1px solid #ccc;
-      border-radius: 8px;
+      font-size: 16px;
     }
-    select {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 12px;
-      border-radius: 8px;
-    }
-    button {
-      padding: 12px 25px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .progress {
-      margin-top: 20px;
-      background: #eee;
-      height: 20px;
-      border-radius: 10px;
-      overflow: hidden;
-      display: none;
-    }
+
     .progress-bar {
-      height: 100%;
-      width: 0%;
-      background-color: #28a745;
-      transition: width 0.3s ease-in-out;
-    }
-    #download-link {
-      margin-top: 15px;
+      width: 100%;
+      background: #eee;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 10px 0;
       display: none;
+    }
+
+    .progress-bar-fill {
+      height: 16px;
+      width: 0%;
+      background: #28a745;
+      transition: width 0.3s ease;
+    }
+
+    .download-links {
+      margin-top: 20px;
+    }
+
+    .download-links a {
+      display: block;
+      margin: 5px 0;
+      color: #007bff;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>YouTube Downloader</h2>
-    <input type="text" id="link" placeholder="Paste YouTube link here" />
+
+    <input type="text" id="url" placeholder="Paste YouTube video or playlist link here">
+    
     <select id="format">
-      <option value="mp4">MP4 (Video)</option>
-      <option value="mp3">MP3 (Audio)</option>
+      <option value="mp4">Convert to MP4</option>
+      <option value="mp3">Convert to MP3</option>
     </select>
+
     <button onclick="startDownload()">GO</button>
 
-    <div class="progress" id="progress">
-      <div class="progress-bar" id="progress-bar"></div>
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-bar-fill" id="progressBarFill"></div>
     </div>
 
-    <div id="download-link">
-      <a id="downloadBtn" href="#" download>Download Now</a>
-    </div>
+    <div class="download-links" id="downloadLinks"></div>
   </div>
 
   <script>
     async function startDownload() {
-      const link = document.getElementById("link").value.trim();
-      const format = document.getElementById("format").value;
+      const url = document.getElementById('url').value;
+      const format = document.getElementById('format').value;
+      const progressBar = document.getElementById('progressBar');
+      const progressBarFill = document.getElementById('progressBarFill');
+      const downloadLinks = document.getElementById('downloadLinks');
 
-      if (!link) {
-        alert("Please enter a valid YouTube link.");
-        return;
-      }
+      if (!url) return alert("Please paste a link.");
 
-      document.getElementById("progress").style.display = "block";
-      document.getElementById("progress-bar").style.width = "10%";
-      document.getElementById("download-link").style.display = "none";
+      progressBar.style.display = 'block';
+      progressBarFill.style.width = '0%';
+      downloadLinks.innerHTML = '';
 
-      const res = await fetch("/api/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ link, format })
-      });
-
-      const result = await res.json();
-      if (!result.file_id) {
-        alert("Error: " + result.error);
-        return;
-      }
-
-      const fileId = result.file_id;
-      let progress = 10;
-
-      const interval = setInterval(async () => {
-        const statusRes = await fetch(`/api/status/${fileId}`);
-        const statusData = await statusRes.json();
-
-        if (statusData.status === "completed") {
-          clearInterval(interval);
-          document.getElementById("progress-bar").style.width = "100%";
-          document.getElementById("downloadBtn").href = statusData.download_url;
-          document.getElementById("download-link").style.display = "block";
-        } else {
-          progress = Math.min(progress + 10, 95);
-          document.getElementById("progress-bar").style.width = progress + "%";
+      // Simulate progress
+      let percent = 0;
+      const interval = setInterval(() => {
+        if (percent < 90) {
+          percent += 5;
+          progressBarFill.style.width = percent + '%';
         }
-      }, 1500);
+      }, 300);
+
+      // Send request to Flask backend
+      try {
+        const response = await fetch('/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, format })
+        });
+
+        const result = await response.json();
+        clearInterval(interval);
+        progressBarFill.style.width = '100%';
+
+        if (result.files && result.files.length > 0) {
+          result.files.forEach(file => {
+            const a = document.createElement('a');
+            a.href = file.path;
+            a.textContent = `Download: ${file.name}`;
+            a.download = file.name;
+            downloadLinks.appendChild(a);
+          });
+        } else {
+          downloadLinks.innerHTML = `<p>No downloadable files found.</p>`;
+        }
+
+      } catch (err) {
+        clearInterval(interval);
+        alert("Error downloading: " + err.message);
+      }
     }
   </script>
 </body>
