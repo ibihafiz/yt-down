@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: flask-downloader
+    env: python
+    buildCommand: "./.render/build.sh"
+    startCommand: "python app.py"
+    plan: free
