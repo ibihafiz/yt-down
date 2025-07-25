@@ -3,123 +3,166 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>YouTube Downloader</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>YT Downloader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     body {
-      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-      color: #fff;
-      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #4e54c8, #8f94fb);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
+
     .container {
-      margin-top: 80px;
-      max-width: 700px;
-      background: rgba(255, 255, 255, 0.05);
+      background: white;
       padding: 30px;
       border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
     }
-    .form-control, .form-check-input, .btn {
-      border-radius: 10px;
+
+    h1 {
+      margin-bottom: 20px;
+      color: #4e54c8;
     }
-    .progress {
-      height: 25px;
-      border-radius: 12px;
-      overflow: hidden;
+
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
     }
-    .download-section {
+
+    button {
+      background-color: #4e54c8;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background-color: #3b3fc1;
+    }
+
+    #progress-container {
       display: none;
       margin-top: 20px;
+    }
+
+    #progress-bar {
+      height: 20px;
+      background-color: #4e54c8;
+      width: 0%;
+      border-radius: 10px;
+      transition: width 0.4s ease;
+    }
+
+    #progress-wrapper {
+      background-color: #eee;
+      width: 100%;
+      height: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    #download-link {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: gray;
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <h1>YouTube Downloader</h1>
+    <input type="text" id="link" placeholder="Paste YouTube video or playlist link here" />
+    <select id="format">
+      <option value="mp4">MP4 (Video)</option>
+      <option value="mp3">MP3 (Audio)</option>
+    </select>
+    <button onclick="startDownload()">GO</button>
 
-<div class="container text-white">
-  <h2 class="text-center mb-4">YouTube Video & Playlist Downloader</h2>
-
-  <form id="download-form">
-    <div class="mb-3">
-      <label for="url" class="form-label">Paste YouTube Link</label>
-      <input type="text" class="form-control" id="url" placeholder="https://youtube.com/..." required>
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">Output Format</label><br>
-      <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" name="format" id="mp4" value="video" checked>
-        <label class="form-check-label" for="mp4">MP4 (Video)</label>
-      </div>
-      <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" name="format" id="mp3" value="audio">
-        <label class="form-check-label" for="mp3">MP3 (Audio)</label>
+    <div id="progress-container">
+      <div id="progress-wrapper">
+        <div id="progress-bar"></div>
       </div>
     </div>
 
-    <div class="form-check mb-3">
-      <input class="form-check-input" type="checkbox" id="enableTrim">
-      <label class="form-check-label" for="enableTrim">
-        Trim File (MP4/MP3)
-      </label>
+    <div id="download-link">
+      <a id="downloadBtn" href="#" download>
+        <button>Download File</button>
+      </a>
     </div>
 
-    <div class="row mb-3" id="trimInputs" style="display:none;">
-      <div class="col">
-        <input type="text" class="form-control" id="startTime" placeholder="Start Time (e.g. 00:00)">
-      </div>
-      <div class="col">
-        <input type="text" class="form-control" id="endTime" placeholder="End Time (e.g. 02:30)">
-      </div>
+    <div class="footer">
+      Quality: Auto-selected up to 4K/30fps · Converts to selected format
     </div>
-
-    <div class="d-grid">
-      <button type="submit" class="btn btn-success btn-lg">GO</button>
-    </div>
-  </form>
-
-  <div class="progress mt-4" id="progressBar" style="display:none;">
-    <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
-         role="progressbar" style="width: 0%" id="progressPercent">0%</div>
   </div>
 
-  <div class="download-section text-center mt-4" id="downloadSection">
-    <a href="#" id="downloadLink" class="btn btn-primary btn-lg" download>Download File</a>
-    <p class="mt-2 small text-muted">If it's a playlist, multiple downloads will begin one by one.</p>
-  </div>
-</div>
+  <script>
+    async function startDownload() {
+      const link = document.getElementById("link").value.trim();
+      const format = document.getElementById("format").value;
 
-<script>
-  const form = document.getElementById('download-form');
-  const progressBar = document.getElementById('progressBar');
-  const progressPercent = document.getElementById('progressPercent');
-  const downloadSection = document.getElementById('downloadSection');
-  const downloadLink = document.getElementById('downloadLink');
-  const enableTrim = document.getElementById('enableTrim');
-  const trimInputs = document.getElementById('trimInputs');
-
-  enableTrim.addEventListener('change', function () {
-    trimInputs.style.display = this.checked ? 'flex' : 'none';
-  });
-
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    // Simulate progress
-    progressBar.style.display = 'block';
-    let percent = 0;
-    const interval = setInterval(() => {
-      percent += 10;
-      progressPercent.style.width = percent + '%';
-      progressPercent.innerText = percent + '%';
-
-      if (percent >= 100) {
-        clearInterval(interval);
-        downloadSection.style.display = 'block';
-        downloadLink.href = '#'; // dynamically update to server path
+      if (!link) {
+        alert("Please paste a valid YouTube link.");
+        return;
       }
-    }, 300);
-  });
-</script>
 
+      document.getElementById("progress-container").style.display = "block";
+      document.getElementById("progress-bar").style.width = "0%";
+      document.getElementById("download-link").style.display = "none";
+
+      try {
+        const res = await fetch("/api/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ link, format }),
+        });
+
+        const data = await res.json();
+        if (!data.file_id) throw new Error("Download start failed");
+
+        // Simulate progress bar
+        let progress = 0;
+        const interval = setInterval(() => {
+          if (progress < 90) {
+            progress += 5;
+            document.getElementById("progress-bar").style.width = progress + "%";
+          }
+        }, 500);
+
+        // Poll status
+        const checkInterval = setInterval(async () => {
+          const checkRes = await fetch(`/api/status/${data.file_id}`);
+          const statusData = await checkRes.json();
+
+          if (statusData.status === "completed") {
+            clearInterval(interval);
+            clearInterval(checkInterval);
+            document.getElementById("progress-bar").style.width = "100%";
+            document.getElementById("downloadBtn").href = statusData.download_url;
+            document.getElementById("download-link").style.display = "block";
+          }
+        }, 3000);
+      } catch (err) {
+        alert("Error starting download: " + err.message);
+      }
+    }
+  </script>
 </body>
 </html>
